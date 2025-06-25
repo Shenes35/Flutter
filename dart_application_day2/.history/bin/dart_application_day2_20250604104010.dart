@@ -1,0 +1,6 @@
+class student{
+  final int? roll;
+  final String? name;
+  final int? total;
+  student()
+}

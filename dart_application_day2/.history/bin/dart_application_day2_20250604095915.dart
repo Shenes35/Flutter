@@ -1,0 +1,3 @@
+class Animal{
+  void sayHello
+}

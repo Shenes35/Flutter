@@ -1,0 +1,22 @@
+abstract class Animal{
+  void sayHello();
+}
+
+class Human extends Animal{
+  void sayName(){
+    print('Human says the name');
+  }
+  @override
+  void sayHello(){
+    super.sayHello();
+    print('Human says Hello');
+  }
+}
+
+void main() {
+  Human h = Human();
+
+  h.sayHello();
+
+  h.sayName();
+}
