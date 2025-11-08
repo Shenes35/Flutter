@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'package:task_tracker/presentation/custom_calender.dart';
+import 'package:task_tracker/presentation/task_update_screen.dart';
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -43,6 +44,32 @@ class _MainScreenState extends State<MainScreen> {
     _selectedBottomIndex = 0;
 
   }
+  void _deleteTask(int taskId) async {
+  try {
+    final response = await Supabase.instance.client
+        .from('Task')
+        .delete()
+        .eq('id', taskId)
+        .select();
+
+    if (response == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to delete task")),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Task deleted successfully")),
+    );
+
+    setState(() {}); // Refresh UI; stream will auto update task list
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Delete failed: $e")),
+    );
+  }
+}
 
   Widget _verticalDivider() {
     return Container(
@@ -294,14 +321,23 @@ class _MainScreenState extends State<MainScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color.fromARGB(255, 40, 39, 39),
-                    Color.fromARGB(255, 0, 0, 0),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: task.completed
+        ? const LinearGradient(
+            colors: [
+              Color.fromARGB(255, 5, 87, 2),          // Light green
+              Color.fromARGB(255, 240, 221, 13),          // Even lighter green
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+        : const LinearGradient(
+            colors: [
+              Color.fromARGB(255, 40, 39, 39),
+              Color.fromARGB(255, 0, 0, 0),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: Colors.white,
@@ -323,14 +359,33 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () {
-                      // Your update logic
-                    },
-                    child: const Text(
-                      'Update',
-                      style: TextStyle(color: Colors.red),
-                    ),
-                  ),
+  onPressed: () async {
+    // Pass the current task to TaskPageupdate for editing
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TaskPageupdate(task: task)),
+    );
+    if (result != null) {
+      setState(() {
+        // Refresh UI after update
+      });
+    }
+  },
+  child: const Text(
+    'Update',
+    style: TextStyle(color: Color.fromARGB(255, 11, 104, 226)),
+  ),
+),
+
+                  TextButton(
+  onPressed: () => _deleteTask(task.id),
+  child: const Text(
+    'Delete',
+    style: TextStyle(color: Colors.red),
+  ),
+),
+
+                  
                   TextButton(
                     onPressed: () async {
                       await Supabase.instance.client
@@ -339,9 +394,9 @@ class _MainScreenState extends State<MainScreen> {
                           .eq('id', task.id);
                       setState(() {});
                     },
-                    child: const Text(
-                      'Completed',
-                      style: TextStyle(color: Colors.green),
+                    child: Text(
+                      task.completed ? 'Completed' : 'Complete',
+                      style: TextStyle(color: const Color.fromARGB(255, 12, 144, 16)),
                     ),
                   ),
                 ],
@@ -388,36 +443,7 @@ class _MainScreenState extends State<MainScreen> {
               _isExpanded = false;
             });
           },
-          child: Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle, // or toggle to rectangle if you want here
-              gradient: const LinearGradient(
-                colors: [Colors.lightBlueAccent, Color.fromARGB(255, 3, 99, 177)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: FloatingActionButton(
-              heroTag: 'leftFab',
-              tooltip: 'Edit tasks',
-              mini: true,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              onPressed: () {
-                // Your left FAB action
-              },
-              child: const Icon(Icons.edit, color: Colors.black),
-            ),
-          ),
+          
         ),
         const SizedBox(width: 20),
         GestureDetector(
@@ -426,36 +452,7 @@ class _MainScreenState extends State<MainScreen> {
               _isExpanded = false;
             });
           },
-          child: Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Colors.lightBlueAccent, Color.fromARGB(255, 3, 99, 177)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black26,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: FloatingActionButton(
-              heroTag: 'rightFab',
-              tooltip: 'Add tasks',
-              mini: true,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              onPressed: () {
-                // Your right FAB action
-              },
-              child: const Icon(Icons.add, color: Colors.black),
-            ),
-          ),
+          
         ),
       ],
     ),
@@ -575,11 +572,7 @@ IconButton(
       ScaleTransition(scale: animation, child: child),
   child: GestureDetector(
     key: ValueKey<bool>(_isExpanded),
-    onTap: () {
-      setState(() {
-        _isExpanded = !_isExpanded;
-      });
-    },
+    
     child: Container(
       width: 56,
       height: 56,
@@ -667,7 +660,7 @@ IconButton(
           ),
           actions: [
             IconButton(
-              icon: const Icon(CupertinoIcons.search, color: Colors.black, size: 30),
+              icon: const Icon(CupertinoIcons.checkmark_alt, color: Colors.black, size: 30),
               tooltip: 'Star',
               onPressed: () {},
             ),
@@ -705,18 +698,23 @@ IconButton(
           ),
           
           IconButton(
-            icon: const Icon(Icons.add),
-            color: Colors.black,
-            tooltip: 'Add Tasks',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TaskPage(),
-                ),
-              );
-            },
-          ),
+  icon: const Icon(Icons.add),
+  color: Colors.black,
+  tooltip: 'Add Tasks',
+  onPressed: () async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TaskPage()),
+    );
+    // result is the created/updated task from TaskPage
+    if (result != null) {
+      setState(() {
+        // Trigger rebuild to refresh task list with new data
+      });
+    }
+  },
+),
+
         ],
       ),
     );
