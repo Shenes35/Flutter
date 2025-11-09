@@ -645,7 +645,7 @@ IconButton(
         appBar: AppBar(
           title: Center(
             child: Text(
-              'Task Tracker',
+              'Task Track',
               style: GoogleFonts.baloo2(
                 textStyle: const TextStyle(
                   fontSize: 37,
