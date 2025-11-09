@@ -1,12 +1,12 @@
+import 'package:task_tracker/api/api.dart';
+import 'package:task_tracker/main.dart';
 import 'package:task_tracker/presentation/task_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:task_tracker/model/task_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'package:task_tracker/presentation/custom_calender.dart';
 import 'package:task_tracker/presentation/task_update_screen.dart';
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -18,8 +18,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
  int _selectedBottomIndex = 0;// 0 = Home, 1 = Analytics, 2 = Notifications, 3 = Profile
 
-  late DateTime _focusedDay;
-  late DateTime _selectedDay;
   bool _isExpanded = false;
   Stream<List<TaskModel>> getTasksStream() {
   final client = Supabase.instance.client;
@@ -39,29 +37,26 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _focusedDay = DateTime.now();
-    _selectedDay = DateTime.now();
     _selectedBottomIndex = 0;
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setupNotificationDevice();
+    });
+
   }
-  void _deleteTask(int taskId) async {
-  try {
-    final response = await Supabase.instance.client
+  void _deleteTask(int taskId,String title) async {
+  try { await Supabase.instance.client
         .from('Task')
         .delete()
         .eq('id', taskId)
         .select();
 
-    if (response == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to delete task")),
-      );
-      return;
-    }
+
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Task deleted successfully")),
     );
+     await sendPushNotificationdelete(title);
 
     setState(() {}); // Refresh UI; stream will auto update task list
   } catch (e) {
@@ -378,7 +373,7 @@ class _MainScreenState extends State<MainScreen> {
 ),
 
                   TextButton(
-  onPressed: () => _deleteTask(task.id),
+  onPressed: () => _deleteTask(task.id,task.task),
   child: const Text(
     'Delete',
     style: TextStyle(color: Colors.red),
@@ -392,6 +387,8 @@ class _MainScreenState extends State<MainScreen> {
                           .from('Task')
                           .update({'Completed': true})
                           .eq('id', task.id);
+
+                      await sendPushNotificationcomplete(task.task);
                       setState(() {});
                     },
                     child: Text(

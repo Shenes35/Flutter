@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:task_tracker/api/api.dart';
 import 'package:task_tracker/model/task_model.dart';
-import 'package:task_tracker/presentation/home_screen.dart';
-
 class TaskPage extends StatefulWidget {
   final TaskModel? task; // If null: new task, else: editing
 
@@ -22,6 +22,7 @@ class _TaskInputPageState extends State<TaskPage> {
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
   bool _completed = false;
+
 
   @override
   void initState() {
@@ -65,6 +66,14 @@ class _TaskInputPageState extends State<TaskPage> {
 
 void _submit() async {
   if (_formKey.currentState?.validate() ?? false) {
+    final player_id = OneSignal.User.pushSubscription.id;
+    if (player_id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Player ID not available yet")),
+      );
+      return;
+    }
+
     final newTask = TaskModel(
       id: widget.task?.id ?? 0,
       createdAt: widget.task?.createdAt ?? DateTime.now(),
@@ -73,20 +82,17 @@ void _submit() async {
       date: _selectedDate,
       time: formatTimeOfDay(_selectedTime),
       completed: _completed,
+      UserID: player_id,
     );
 
-    try {
-      final response = await Supabase.instance.client
+    try {await Supabase.instance.client
           .from('Task')
           .insert(newTask.toJson())
           .select();
 
-      if (response == null || (response is List && response.isEmpty)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No data returned from insert")),
-        );
-        return;
-      }
+
+      // Call your notification sending function here
+      await sendPushNotificationadd(newTask.task);
 
       Navigator.pop(context, newTask);
     } catch (e) {
@@ -96,6 +102,7 @@ void _submit() async {
     }
   }
 }
+
 
 String formatTimeOfDay(TimeOfDay tod) {
   final hour = tod.hour.toString().padLeft(2, '0');
@@ -203,3 +210,4 @@ String formatTimeOfDay(TimeOfDay tod) {
     );
   }
 }
+

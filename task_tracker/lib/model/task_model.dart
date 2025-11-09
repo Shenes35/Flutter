@@ -18,6 +18,9 @@ class TaskModelHive extends HiveObject {
   @HiveField(4)
   bool isSkipped;
 
+  @HiveField(5)
+  String? UserID;
+
   // Additional fields and constructor can be added here
 
   TaskModelHive({
@@ -26,6 +29,7 @@ class TaskModelHive extends HiveObject {
     required this.date,
     required this.isCompleted,
     required this.isSkipped,
+    required this.UserID
   });
 }
 
@@ -39,6 +43,7 @@ String? description;
 DateTime date;
 String time;
 bool completed;
+String? UserID;
   // Add this field
 
   TaskModel({
@@ -49,6 +54,7 @@ bool completed;
     required this.date,
     required this.time,
     this.completed = false, // Default value, adjust if needed
+    this.UserID,
   });
 
   factory TaskModel.fromJson(Map<String, dynamic> json) => TaskModel(
@@ -59,6 +65,7 @@ bool completed;
         date: DateTime.parse(json['Date'] as String),
         time: json['Time'] as String,
         completed: json['Completed'] as bool? ?? false, // Parse safely
+        UserID: json['UserID'] as String?,  // map from json
       );
 
   Map<String, dynamic> toJson() => {
@@ -68,5 +75,6 @@ bool completed;
         'Date': date.toIso8601String(),
         'Time': time,
         'Completed': completed,
+        if (UserID != null) 'UserID': UserID,
       };
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:task_tracker/api/api.dart';
 import 'package:task_tracker/model/task_model.dart';
 
 class TaskPageupdate extends StatefulWidget {
@@ -67,8 +69,16 @@ class _TaskInputPageState extends State<TaskPageupdate> {
     if (picked != null) setState(() => _selectedTime = picked);
   }
 
-  void _submit() async {
+void _submit() async {
   if (_formKey.currentState?.validate() ?? false) {
+    final player_id = OneSignal.User.pushSubscription.id;
+    if (player_id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Player ID not available yet")),
+      );
+      return;
+    }
+
     final updatedTask = TaskModel(
       id: widget.task?.id ?? 0,
       createdAt: widget.task?.createdAt ?? DateTime.now(),
@@ -77,23 +87,20 @@ class _TaskInputPageState extends State<TaskPageupdate> {
       date: _selectedDate,
       time: formatTimeOfDay(_selectedTime),
       completed: _completed,
+      UserID: player_id,
     );
 
-    try {
-      final response = await Supabase.instance.client
+    try {await Supabase.instance.client
           .from('Task')
           .update(updatedTask.toJson())
           .eq('id', updatedTask.id)
           .select();
 
-      if (response == null || (response is List && response.isEmpty)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No data returned from update")),
-        );
-        return;
-      }
+      
 
-      // On success, pop and return updated task
+      // Send push notification after successful update
+      await sendPushNotificationupdate(updatedTask.task);
+
       Navigator.pop(context, updatedTask);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -102,6 +109,8 @@ class _TaskInputPageState extends State<TaskPageupdate> {
     }
   }
 }
+
+
 
 
 String formatTimeOfDay(TimeOfDay tod) {
